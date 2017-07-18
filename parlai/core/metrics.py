@@ -64,6 +64,44 @@ def _f1_score(guess, answers):
     return max(scores)
 
 
+def _MAP_score(label_set, text_cands):
+    ground_label = [int(x in label_set) for x in text_cands]
+    map = 0
+    map_idx = 0
+    extracted = {}
+
+    for idx_, glab in enumerate(ground_label):
+        if ground_label[idx_] != 0:
+            extracted[idx_] = 1
+
+    for idx_, _ in enumerate(text_cands):
+        if idx_ in extracted:
+            map_idx += 1
+            map += map_idx / (idx_ + 1)
+
+    assert (map_idx != 0)
+    map = map / map_idx
+    return map
+
+
+def _MRR_score(label_set, text_cands):
+    ground_label = [int(x in label_set) for x in text_cands]
+    mrr = 0
+    extracted = {}
+
+    for idx_, glab in enumerate(ground_label):
+        if ground_label[idx_] != 0:
+            extracted[idx_] = 1
+
+    for idx_, _ in enumerate(text_cands):
+        if idx_ in extracted:
+            mrr = 1.0 / (idx_ + 1)
+            break
+
+    assert (mrr != 0)
+    return mrr
+
+
 class Metrics(object):
     """Class that maintains evaluation metrics over dialog."""
 
@@ -72,6 +110,8 @@ class Metrics(object):
         self.metrics['cnt'] = 0
         self.metrics['correct'] = 0
         self.metrics['f1'] = 0.0
+        self.metrics['MAP'] = 0.0
+        self.metrics['MRR'] = 0.0
         self.eval_pr = [1, 5, 10, 50, 100]
         for k in self.eval_pr:
             self.metrics['hits@' + str(k)] = 0
@@ -127,6 +167,13 @@ class Metrics(object):
                 if cnts[k] > 0:
                     self.metrics['hits@' + str(k)] += 1
 
+        map_ = _MAP_score(label_set, text_cands)
+        with self._lock():
+            self.metrics['MAP'] += map_
+
+        mrr_ = _MRR_score(label_set, text_cands)
+        with self._lock():
+            self.metrics['MRR'] += mrr_
 
     def update(self, observation, labels):
         with self._lock():
@@ -164,6 +211,10 @@ class Metrics(object):
                 self.metrics['correct'] / self.metrics['cnt'], 4)
             m['f1'] = round_sigfigs(
                 self.metrics['f1'] / self.metrics['cnt'], 4)
+            m['MAP'] = round_sigfigs(
+                self.metrics['MAP'] / self.metrics['cnt'], 4)
+            m['MRR'] = round_sigfigs(
+                self.metrics['MRR'] / self.metrics['cnt'], 4)
             m['hits@k'] = {}
             for k in self.eval_pr:
                 m['hits@k'][k] = round_sigfigs(
@@ -175,5 +226,7 @@ class Metrics(object):
             self.metrics['cnt'] = 0
             self.metrics['correct'] = 0
             self.metrics['f1'] = 0.0
+            self.metrics['MAP'] = 0.0
+            self.metrics['MRR'] = 0.0
             for k in self.eval_pr:
                 self.metrics['hits@' + str(k)] = 0

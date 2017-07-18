@@ -70,6 +70,9 @@ def main():
     # Get command line arguments
     parser = ParlaiParser(True, True)
     train = parser.add_argument_group('Training Loop Arguments')
+    train.add_argument('--valid_metric', type=str,
+                       choices=['accuracy', 'f1', 'MAP'], default='f1',
+                       help='Metric for choosing best valid model')
     train.add_argument('-et', '--evaltask',
                         help=('task to use for valid/test (defaults to the ' +
                               'one used for training if not set)'))
@@ -112,7 +115,7 @@ def main():
     total_exs = 0
     max_exs = opt['num_epochs'] * len(world)
     max_parleys = math.ceil(max_exs / opt['batchsize'])
-    best_accuracy = 0
+    best_metric = 0
     impatience = 0
     saved = False
     while True:
@@ -169,19 +172,20 @@ def main():
         if (opt['validation_every_n_secs'] > 0 and
                 validate_time.time() > opt['validation_every_n_secs']):
             valid_report = run_eval(agent, opt, 'valid', True, opt['validation_max_exs'])
-            if valid_report['accuracy'] > best_accuracy:
-                best_accuracy = valid_report['accuracy']
+            valid_metric = opt['valid_metric']
+            if valid_report[valid_metric] > best_metric:
+                best_metric = valid_report[valid_metric]
                 impatience = 0
-                print('[ new best accuracy: ' + str(best_accuracy) +  ' ]')
+                print('[ new best {}: {} ]'.format(valid_metric, best_metric))
                 world.save_agents()
                 saved = True
-                if best_accuracy == 1:
+                if best_metric == 1:
                     print('[ task solved! stopping. ]')
                     break
             else:
                 impatience += 1
-                print('[ did not beat best accuracy: {} impatience: {} ]'.format(
-                        round(best_accuracy, 4), impatience))
+                print('[ did not beat best {}: {} impatience: {} ]'.format(
+                        valid_metric, round(best_metric, 4), impatience))
             validate_time.reset()
             if opt['validation_patience'] > 0 and impatience >= opt['validation_patience']:
                 print('[ ran out of patience! stopping training. ]')
