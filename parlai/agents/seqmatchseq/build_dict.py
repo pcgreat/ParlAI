@@ -28,7 +28,7 @@ def build_dict(opt):
         dictionary = str2class(opt['dict_class'])(opt)
     else:
         # Default dictionary class
-        dictionary = DictionaryAgent(opt)
+        dictionary = SimpleDictionaryAgent(opt)
     ordered_opt = copy.deepcopy(opt)
     cnt = 0
     # we use train set to build dictionary
@@ -48,7 +48,7 @@ def build_dict(opt):
             world_dict.parley()
         print('[ dictionary built: %s. ]' % dt)
     dictionary.save(opt['dict_file'], sort=True)
-    # print('[ num words =  %d ]' % len(dictionary))
+    print('[ num words =  %d ]' % len(dictionary))
 
 def main():
     # Get command line arguments
