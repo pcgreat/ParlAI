@@ -38,12 +38,11 @@ class SoftAttention(nn.Module):
         super(SoftAttention, self).__init__()
 
     def forward(self, linput, rinput):
-        self.lPad = linput.view(-1, linput.size(0), linput.size(1))
-
-        self.lPad = linput  # self.lPad = Padding(0, 0)(linput) TODO: figureout why padding?
-        self.M_r = torch.mm(self.lPad, rinput.t())
-        self.alpha = F.softmax(self.M_r.transpose(0, 1))
-        self.Yl = torch.mm(self.alpha, self.lPad)
+        linput_padding = Variable(torch.zeros(1, linput.size(1)), requires_grad = False)
+        self.lPad = torch.cat([linput, linput_padding], dim=0)
+        self.M_r = torch.mm(self.lPad, rinput.t()) # 8, 150 * 150, 128 = 8, 128
+        self.alpha = F.softmax(self.M_r.transpose(0, 1)) # 128, 8
+        self.Yl = torch.mm(self.alpha, self.lPad) # 8, 150
         return self.Yl
 
 
@@ -89,7 +88,7 @@ class TemporalConvoluation(nn.Module):
         super(TemporalConvoluation, self).__init__()
         self.conv1 = nn.Conv1d(cov_dim, mem_dim, window_size)
 
-    def forward(self, input):
+    def forward(self, input): # 377, 150
         myinput = input.view(1, input.size()[0], input.size()[1]).transpose(1, 2)  # 1, 150, 56
         output = self.conv1(myinput)[0].transpose(0, 1)  # 56, 150
         return output

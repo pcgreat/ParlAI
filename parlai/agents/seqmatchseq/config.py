@@ -16,7 +16,7 @@ def add_cmdline_args(parser):
     # Runtime environment
     agent = parser.add_argument_group('SeqMatchSeq Arguments')
     agent.add_argument('--cuda', type='bool', default=False)
-    agent.add_argument('--random_seed', type=int, default=528)
+    agent.add_argument('--random_seed', type=int, default=123)
 
     # Basics
     agent.add_argument('--embedding_file', type=str, default=None,
@@ -41,6 +41,10 @@ def add_cmdline_args(parser):
                        help='Optimizer: sgd, adamax, adam (default)')
     agent.add_argument('--learning_rate', '-lr', type=float, default=0.004,
                        help='Learning rate for SGD (default 0.1)')
+    agent.add_argument('--weight_decay', type=float, default=0,
+                       help='Weight decay (default 0)')
+    agent.add_argument('--momentum', type=float, default=0,
+                       help='Momentum (default 0)')
 
     # Model-specific
     agent.add_argument('--mem_dim', type=int, default=150, help='state dimension')
